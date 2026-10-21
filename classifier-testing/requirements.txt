@@ -1,0 +1,10 @@
+torch
+transformers>=4.56
+accelerate
+datasets
+scikit-learn
+pandas
+tqdm
+huggingface_hub
+ipykernel
+ipywidgets
