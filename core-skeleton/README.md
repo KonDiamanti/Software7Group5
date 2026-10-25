@@ -3,7 +3,7 @@
 Project skeleton for a shared service that checks a prompt before it reaches a guard model:
 cheap checks first, guard model only when they are unsure.
 
-## Idea of the flow
+## Idea of the flow (the order is our current assumption)
 
     prompt -> 1. known attack in the shared database?  -> block
            -> 2. tier 1 (cheap check, not chosen yet)  -> block / pass / unsure
@@ -16,14 +16,14 @@ cheap checks first, guard model only when they are unsure.
 - src/tier1/language.py: English check (the tier-1 model only knows English)
 - src/attack_db/: shared attack database
   - base.py: the shape every database version has to offer (add, lookup, count)
-  - hash_db.py: works, exact match on a hash of the cleaned prompt, stored in sqlite
+  - hash_db.py: works, exact match on a hash of the cleaned prompt, stored in sqlite (uses the cleaning from tier1/cleaning.py)
   - embedding_db.py: placeholder only, hash or embedding is still undecided
 - tests/test_attack_db.py: tests for the database (8 tests)
-- experiments/tfidf_experiment.py: first test of the TF-IDF + logistic regression classifier (a candidate, not the chosen tier 1)
+- requirements.txt: packages (so far only langdetect is used, and it is optional; the others are for the tier-1 model later)
 
 ## Not built yet (empty placeholder files)
 
-These wait for decisions in the group (which tier-1 classifier, which guard model).
+These wait for decisions in the group (which tier-1 detector, which guard model).
 
 - src/tier1/tfidf_lr.py, src/tier1/train.py: the tier-1 detector and its training
 - src/router.py: sends a prompt to the guard only when tier 1 is unsure
@@ -34,13 +34,9 @@ These wait for decisions in the group (which tier-1 classifier, which guard mode
 ## Folders
 
     src/          the code
-    config/       settings (config/tier1.json)
-    models/       saved models
-    data/         datasets (not committed)
-    experiments/  scripts used to test candidate classifiers
     tests/        unit tests
 
-## Run
+## Run (from inside the core-skeleton folder)
 
     pip install -r requirements.txt
     python -m unittest discover -s tests -t . -v
