@@ -1,0 +1,16 @@
+# Central settings. Everything marked TBD is still undecided.
+
+model:
+  provider: echo        # TBD: language model provider (echo = placeholder)
+  name: placeholder     # TBD: model name / tier
+  temperature: 0.7
+  max_tokens: 1024
+
+guard:
+  provider: allow_all   # TBD: guard model provider (allow_all = placeholder)
+  name: placeholder     # TBD: guard model name
+  check_input: true
+  check_output: true
+
+database:
+  path: data/app.db
