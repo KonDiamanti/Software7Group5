@@ -3,6 +3,7 @@ transformers>=4.56
 accelerate
 datasets
 scikit-learn
+sentence-transformers
 pandas
 tqdm
 huggingface_hub
