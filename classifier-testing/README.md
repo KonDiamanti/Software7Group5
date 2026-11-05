@@ -1,18 +1,30 @@
 # Classifier testing
 
-Before we build our own cheap check for jailbreaks and prompt injections, we test how well existing classifiers do on the same labelled prompts. This folder has the notebook for that test and the results we use in our report. It is part of our SW7 project at AAU Copenhagen (group S7G5).
-
-## What's in here
+We test how well existing classifiers and our own cheap checks detect jailbreaks and prompt injections, all on the same labelled prompts. The results and what we found are in [RESULTS.md](RESULTS.md), and the numbers go into the section "Testing Existing Classifiers" of our report.
 
 | File | What it is |
 |---|---|
-| `S7G5_Classifiers.ipynb` | The notebook. It loads the data, runs the six classifiers and makes the tables for the report. |
-| `results/` | The results of our Colab run on 20 October 2026, which are the numbers in the report. A new run of the notebook overwrites them. |
-| `requirements.txt` | The Python libraries the notebook needs. |
+| `S7G5_Classifiers.ipynb` | Runs everything and makes the tables. Start here. |
+| `prompt_data.py` | Loads the test prompts, and the safe-guard training data without near copies of test prompts. |
+| `classifiers.py` | The twelve classifiers. |
+| `benchmark.py` | Runs a classifier on every prompt and makes the result tables. |
+| `our_prompts.csv` | Our own test prompts. |
+| `results/` | The CSVs of our latest run. A new run overwrites them. |
+| `RESULTS.md` | The results, what we found, and a log of all our runs. |
 
-## Running it
+## Data
 
-The full guide, for Google Colab and for your own computer, is at the top of the notebook (section 0). On your own computer it comes down to this:
+| Dataset | Used for | Attacks | Harmless |
+|---|---|---|---|
+| `deepset/prompt-injections` (test split) | testing: prompt injections, more than a third in German | 60 | 56 |
+| `jackhhao/jailbreak-classification` (test split) | testing: jailbreaks, many of them long role play | 139 | 123 |
+| `hackaprompt/hackaprompt-dataset` (200 random attacks that worked) | testing: prompt injections | 200 | 0 |
+| `our_prompts.csv` | testing: our own prompts, only examples so far | 4 | 4 |
+| `xTRam1/safe-guard-prompt-injection` (train split) | training the learned cheap checks | | |
+
+## Setup
+
+You need Python 3.10 or newer and VS Code with the Python and Jupyter extensions. In a terminal in this folder, run once:
 
 Windows:
 ```
@@ -28,25 +40,37 @@ python3 -m venv .venv
 .venv/bin/hf auth login
 ```
 
-Then open the notebook in VS Code, pick the `.venv` kernel and click Run All. Prompt Guard 2, Llama Guard 3 and the HackAPrompt dataset need a Hugging Face account with access to them. Without access the notebook still runs, but skips those three.
+`hf auth login` asks for a Hugging Face token (Settings > Access Tokens on huggingface.co, "Read" is enough). Nothing shows while you paste it. Prompt Guard 2, Llama Guard 3 and HackAPrompt also need access: request it on the pages of [Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M) and [Llama Guard 3](https://huggingface.co/meta-llama/Llama-Guard-3-1B), and accept the terms of [HackAPrompt](https://huggingface.co/datasets/hackaprompt/hackaprompt-dataset). Without access these three are skipped.
 
-## Results
+With an NVIDIA GPU, install the GPU version of torch afterwards (the command for your CUDA version is on [pytorch.org](https://pytorch.org/get-started/locally/)).
 
-Detection rate (Det.) and false alarm rate (FA) in %, from the Colab run on a Tesla T4. F1 and time are over deepset and jackhhao together.
+## Running
 
-| Classifier | deepset Det. | deepset FA | jackhhao Det. | jackhhao FA | HackAPrompt Det. | F1 | ms per prompt |
-|---|---|---|---|---|---|---|---|
-| Rule-based check | 16.7 | 0.0 | 84.9 | 14.6 | 18.5 | 0.74 | 2.4 |
-| ProtectAI DeBERTa v2 | 36.7 | 0.0 | 84.2* | 1.6* | 99.5 | 0.82* | 71.7 |
-| Prompt Guard 2 (86M) | 13.3 | 0.0 | 93.5 | 0.8 | 88.5 | 0.82 | 36.7 |
-| Qwen3Guard (0.6B) | 13.3 | 1.8 | 80.6 | 1.6 | 2.0 | 0.75 | 630.7 |
-| Llama Guard 3 (1B) | 18.3 | 1.8 | 48.2 | 8.1 | 20.5 | 0.54 | 443.8 |
-| TF-IDF (safe-guard) | 3.3 | 0.0 | 84.9† | 0.8† | 8.5 | 0.75† | 1.3 |
+Open the notebook, click Select Kernel > Python Environments > `.venv`, and click Run All. On a GPU a run takes about 15 to 20 minutes, on a CPU about an hour, mostly for the two guard LLMs.
 
-\* ProtectAI was trained on jackhhao. † TF-IDF's training data has near copies of 40 jackhhao jailbreaks. Without them it catches 80.8%.
+The notebook reloads the `.py` files by itself, so after changing one you only have to run the cells again.
 
-In short: Prompt Guard 2 is the best jailbreak detector. All six classifiers miss most of the deepset injections, but the two injection models catch almost all HackAPrompt attacks, so the problem is the kind of injections in deepset and not prompt injections in general. The guard LLMs judge harm and not tricks, and the cheap checks only know the words they were built or trained on. Section 7 of the notebook explains each result.
+## Adding a classifier
 
-## Before you commit
+A classifier is a function that gets one prompt and returns 1 (attack) or 0 (harmless), or a pair `(answer, score)` with a score from 0 to 1. Put it in `classifiers.py` and add a cell to section 3 of the notebook:
 
-Clear the outputs first (in VS Code: the `...` menu at the top of the notebook > Clear All Outputs), so the file stays small and the changes are easy to read. Never commit a Hugging Face token.
+```python
+bench.run("My classifier", my_check)
+```
+
+It then shows up in every table and in the Overleaf rows. A Hugging Face text-classification model needs only one line:
+
+```python
+bench.run("My model", hf_classifier("name/of-the-model", DEVICE))
+```
+
+If the model calls attacks something else than `INJECTION`, `JAILBREAK`, `MALICIOUS` or `LABEL_1`, add its label to `ATTACK_LABELS` in `classifiers.py`.
+
+## Adding our own prompts
+
+Add a row to `our_prompts.csv` with the prompt and 1 for an attack or 0 for a harmless prompt. If the prompt has a comma, a quote mark or a line break, put it in double quotes and write each quote mark inside it twice (`""`). They are scored as their own dataset, `ours`.
+
+## Before commit
+
+- Clear the notebook outputs (the `...` menu at the top of the notebook > Clear All Outputs), so the file stays small and the changes are easy to read.
+- Never commit your Hugging Face token or the `.venv` folder.
