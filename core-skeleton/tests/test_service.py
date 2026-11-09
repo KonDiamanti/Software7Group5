@@ -43,17 +43,18 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(guard.calls, 0)
 
     def test_tier1_block_does_not_call_guard(self):
+        guard = FakeGuard()
         service = PromptService(
             HashAttackDB(),
             FakeTier1(Result(BLOCK, 0.99, "high_attack_score")),
-            FakeGuard(),
+            guard,
         )
 
         result = service.check("suspicious prompt")
 
         self.assertEqual(result.verdict, BLOCK)
         self.assertEqual(result.reason, "high_attack_score")
-        self.assertEqual(service.guard.calls, 0)
+        self.assertEqual(guard.calls, 0)
 
     def test_tier1_pass_does_not_call_guard(self):
         guard = FakeGuard()
