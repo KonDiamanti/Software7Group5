@@ -1,0 +1,14 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+attacks in the database: 916, edited samples per edit: up to 200
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2866.62it/s]
+Batches:   0%|          | 0/15 [00:00<?, ?it/s]Batches:   7%|▋         | 1/15 [00:02<00:35,  2.52s/it]Batches:  13%|█▎        | 2/15 [00:05<00:34,  2.62s/it]Batches:  20%|██        | 3/15 [00:07<00:32,  2.68s/it]Batches:  27%|██▋       | 4/15 [00:11<00:31,  2.83s/it]Batches:  33%|███▎      | 5/15 [00:13<00:28,  2.84s/it]Batches:  40%|████      | 6/15 [00:16<00:25,  2.83s/it]Batches:  47%|████▋     | 7/15 [00:19<00:22,  2.75s/it]Batches:  53%|█████▎    | 8/15 [00:22<00:19,  2.80s/it]Batches:  60%|██████    | 9/15 [00:24<00:16,  2.77s/it]Batches:  67%|██████▋   | 10/15 [00:27<00:14,  2.87s/it]Batches:  73%|███████▎  | 11/15 [00:29<00:09,  2.40s/it]Batches:  80%|████████  | 12/15 [00:30<00:05,  1.91s/it]Batches:  87%|████████▋ | 13/15 [00:30<00:02,  1.47s/it]Batches:  93%|█████████▎| 14/15 [00:31<00:01,  1.19s/it]Batches: 100%|██████████| 15/15 [00:31<00:00,  2.08s/it]
+
+edit                      n     hash  emb>=0.95  emb>=0.90  emb>=0.85  emb>=0.80
+--------------------------------------------------------------------------------
+synonyms (up to 3)      167     0.0%      96.4%      98.8%      99.4%     100.0%
+curly quotes            147     0.0%     100.0%     100.0%     100.0%     100.0%
+filler text added       200     0.0%      84.0%      92.5%      96.5%      98.5%
+typos (3 words)         200     0.0%      75.5%      84.5%      87.0%      90.5%
+leetspeak (15%)         189     0.0%       5.3%      15.3%      33.9%      56.1%
+10% words dropped       188     0.0%      73.4%      95.7%      97.9%      99.5%
+sentences shuffled      168     1.8%      36.9%      61.9%      73.2%      82.1%
