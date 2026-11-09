@@ -3,3 +3,4 @@ joblib
 numpy
 langdetect
 datasets
+sentence-transformers
