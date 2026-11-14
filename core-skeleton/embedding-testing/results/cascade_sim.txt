@@ -1,6 +1,4 @@
-Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-attacks 916, harmless 1037
-Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2579.82it/s]
+﻿attacks 916, harmless 1037
 seed 1/10 done
 seed 2/10 done
 seed 3/10 done
@@ -15,49 +13,123 @@ seed 10/10 done
 guard only (every prompt to the guard): 1000.0 guard calls per 1,000 prompts
 traffic: 100 prompts per app, 20% attacks, repeat rate 30%, 10 runs, guard assumed always right
 
-GUARD CALLS per 1,000 prompts (lower is better), by number of apps
+GUARD CALLS per 1,000 prompts (lower is better), by number of apps  (mean +- standard deviation over the runs)
     apps           static cascade                 separate              shared hash         shared embedding  shared emb. memory only
-       1                    524.0                    502.0                    504.0                    502.0                    518.0
-       2                    535.5                    527.5                    521.5                    517.0                    524.0
-       5                    530.8                    506.2                    471.2                    472.4                    518.0
-      10                    517.8                    502.5                    450.7                    448.1                    506.6
+       1            524.0 +-127.6               502.0 +-102.5               504.0 +-106.9               502.0 +-102.5               518.0 +-119.5   
+       2            535.5 +- 96.2               527.5 +- 94.9               521.5 +-104.6               517.0 +-101.0               524.0 +- 92.1   
+       5            530.8 +-109.2               506.2 +-107.2               471.2 +-122.6               472.4 +-120.6               518.0 +-114.7   
+      10            517.8 +-151.2               502.5 +-142.3               450.7 +-120.1               448.1 +-120.4               506.6 +-147.6   
 
-MISSED ATTACKS in % of attacks (lower is better)
+MISSED ATTACKS in % of attacks (lower is better)  (mean +- standard deviation over the runs)
     apps           static cascade                 separate              shared hash         shared embedding  shared emb. memory only
-       1                      3.4                      3.4                      3.4                      3.4                      3.4
-       2                      1.0                      1.2                      1.5                      1.5                      1.0
-       5                      4.1                      4.0                      4.1                      3.9                      4.1
-      10                      4.3                      4.2                      3.9                      4.0                      4.2
+       1              3.4 +-  4.0                 3.4 +-  4.0                 3.4 +-  4.0                 3.4 +-  4.0                 3.4 +-  4.0   
+       2              1.0 +-  1.2                 1.2 +-  1.3                 1.5 +-  1.6                 1.5 +-  1.6                 1.0 +-  1.2   
+       5              4.1 +-  3.4                 4.0 +-  3.1                 4.1 +-  3.2                 3.9 +-  3.0                 4.1 +-  3.4   
+      10              4.3 +-  3.2                 4.2 +-  3.1                 3.9 +-  2.6                 4.0 +-  2.6                 4.2 +-  3.1   
 
-HARMLESS PROMPTS BLOCKED in % of harmless (lower is better)
+HARMLESS PROMPTS BLOCKED in % of harmless (lower is better)  (mean +- standard deviation over the runs)
     apps           static cascade                 separate              shared hash         shared embedding  shared emb. memory only
-       1                      7.9                      7.0                      7.0                      7.0                      7.9
-       2                      3.3                      3.3                      3.4                      3.5                      3.3
-       5                      3.0                      3.0                      2.5                      2.5                      3.0
-      10                      3.3                      3.3                      3.7                      3.7                      3.3
+       1              7.9 +-  4.4                 7.0 +-  4.1                 7.0 +-  4.1                 7.0 +-  4.1                 7.9 +-  4.4   
+       2              3.3 +-  2.9                 3.3 +-  2.7                 3.4 +-  2.5                 3.5 +-  2.5                 3.3 +-  2.9   
+       5              3.0 +-  2.3                 3.0 +-  2.3                 2.5 +-  1.9                 2.5 +-  1.9                 3.0 +-  2.3   
+      10              3.3 +-  1.9                 3.3 +-  1.7                 3.7 +-  1.9                 3.7 +-  1.9                 3.3 +-  1.9   
 
 SAME, with 10 apps and different repeat rates
 
-GUARD CALLS per 1,000 prompts, by repeat rate
+GUARD CALLS per 1,000 prompts, by repeat rate  (mean +- standard deviation over the runs)
   repeat           static cascade                 separate              shared hash         shared embedding  shared emb. memory only
-     0.0                    512.8                    502.2                    435.2                    435.6                    511.9
-     0.1                    516.5                    502.0                    443.5                    439.5                    512.7
-     0.3                    517.8                    502.5                    450.7                    448.1                    506.6
-     0.5                    517.7                    504.5                    455.9                    455.3                    497.4
-     0.7                    521.4                    499.5                    459.3                    456.0                    491.3
+     0.0            512.8 +-148.9               502.2 +-140.3               435.2 +-113.9               435.6 +-113.7               511.9 +-148.5   
+     0.1            516.5 +-150.7               502.0 +-139.4               443.5 +-123.7               439.5 +-121.8               512.7 +-149.4   
+     0.3            517.8 +-151.2               502.5 +-142.3               450.7 +-120.1               448.1 +-120.4               506.6 +-147.6   
+     0.5            517.7 +-152.7               504.5 +-141.4               455.9 +-135.3               455.3 +-131.0               497.4 +-146.1   
+     0.7            521.4 +-156.6               499.5 +-145.0               459.3 +-130.6               456.0 +-127.9               491.3 +-147.1   
 
-MISSED ATTACKS %, by repeat rate
+MISSED ATTACKS %, by repeat rate  (mean +- standard deviation over the runs)
   repeat           static cascade                 separate              shared hash         shared embedding  shared emb. memory only
-     0.0                      4.1                      4.0                      4.3                      4.3                      4.1
-     0.1                      3.9                      4.1                      3.8                      3.9                      3.9
-     0.3                      4.3                      4.2                      3.9                      4.0                      4.2
-     0.5                      3.9                      3.9                      3.5                      3.1                      3.7
-     0.7                      2.5                      2.5                      2.4                      2.3                      2.3
+     0.0              4.1 +-  3.5                 4.0 +-  3.5                 4.3 +-  3.4                 4.3 +-  3.4                 4.1 +-  3.5   
+     0.1              3.9 +-  3.2                 4.1 +-  3.0                 3.8 +-  3.1                 3.9 +-  3.0                 3.9 +-  3.2   
+     0.3              4.3 +-  3.2                 4.2 +-  3.1                 3.9 +-  2.6                 4.0 +-  2.6                 4.2 +-  3.1   
+     0.5              3.9 +-  2.5                 3.9 +-  2.5                 3.5 +-  2.9                 3.1 +-  2.7                 3.7 +-  2.5   
+     0.7              2.5 +-  2.0                 2.5 +-  2.1                 2.4 +-  2.5                 2.3 +-  2.4                 2.3 +-  1.9   
 
-HARMLESS BLOCKED %, by repeat rate
+HARMLESS BLOCKED %, by repeat rate  (mean +- standard deviation over the runs)
   repeat           static cascade                 separate              shared hash         shared embedding  shared emb. memory only
-     0.0                      3.3                      3.4                      3.8                      3.8                      3.4
-     0.1                      3.3                      3.4                      3.6                      3.6                      3.4
-     0.3                      3.3                      3.3                      3.7                      3.7                      3.3
-     0.5                      3.3                      3.3                      3.3                      3.4                      3.3
-     0.7                      3.3                      3.4                      3.4                      3.4                      3.3
+     0.0              3.3 +-  2.0                 3.4 +-  2.0                 3.8 +-  2.0                 3.8 +-  2.0                 3.4 +-  2.0   
+     0.1              3.3 +-  2.0                 3.4 +-  1.9                 3.6 +-  1.9                 3.6 +-  2.0                 3.4 +-  1.9   
+     0.3              3.3 +-  1.9                 3.3 +-  1.7                 3.7 +-  1.9                 3.7 +-  1.9                 3.3 +-  1.9   
+     0.5              3.3 +-  2.0                 3.3 +-  1.8                 3.3 +-  1.9                 3.4 +-  1.8                 3.3 +-  2.0   
+     0.7              3.3 +-  2.0                 3.4 +-  2.0                 3.4 +-  1.8                 3.4 +-  1.7                 3.3 +-  2.0   
+
+PAIRED DIFFERENCE in guard calls per 1,000 prompts: shared embedding minus shared hash
+(negative = the embedding needs fewer guard calls; same traffic in every run)
+    apps  repeat   mean diff     std    embedding lower in
+       1     0.3        -2.0     6.0               1 of 10
+       2     0.3        -4.5     7.9               3 of 10
+       5     0.3         1.2    10.7               4 of 10
+      10     0.3        -2.6     7.2               6 of 10
+      10     0.0         0.4     2.7               3 of 10
+      10     0.1        -4.0     6.2               5 of 10
+      10     0.5        -0.6    20.8               5 of 10
+      10     0.7        -3.3    10.1               6 of 10
+
+PAIRED DIFFERENCE in guard calls per 1,000 prompts: first condition minus second condition
+(positive = the second one needs fewer guard calls; same traffic in every run)
+
+separate  minus  shared embedding
+    apps  repeat   mean diff     std     second lower in
+       1     0.3         0.0     0.0             0 of 10
+       2     0.3        10.5    26.7             8 of 10
+       5     0.3        33.8    48.4             8 of 10
+      10     0.3        54.4    72.7             7 of 10
+      10     0.0        66.6    68.2             9 of 10
+      10     0.1        62.5    64.0             9 of 10
+      10     0.5        49.2    58.2             8 of 10
+      10     0.7        43.5    59.1             7 of 10
+
+separate  minus  shared hash
+    apps  repeat   mean diff     std     second lower in
+       1     0.3        -2.0     6.0             0 of 10
+       2     0.3         6.0    25.6             7 of 10
+       5     0.3        35.0    56.3             6 of 10
+      10     0.3        51.8    67.2             7 of 10
+      10     0.0        67.0    69.7             9 of 10
+      10     0.1        58.5    62.7             8 of 10
+      10     0.5        48.6    58.4             8 of 10
+      10     0.7        40.2    56.7             7 of 10
+
+static cascade  minus  shared embedding
+    apps  repeat   mean diff     std     second lower in
+       1     0.3        22.0    33.7             7 of 10
+       2     0.3        18.5    29.8             7 of 10
+       5     0.3        58.4    66.3             8 of 10
+      10     0.3        69.7    84.1             7 of 10
+      10     0.0        77.2    81.6             9 of 10
+      10     0.1        77.0    84.4             9 of 10
+      10     0.5        62.4    75.3             8 of 10
+      10     0.7        65.4    72.7             8 of 10
+
+static cascade  minus  shared emb. memory only
+    apps  repeat   mean diff     std     second lower in
+       1     0.3         6.0    12.0             3 of 10
+       2     0.3        11.5    11.0             9 of 10
+       5     0.3        12.8     9.9            10 of 10
+      10     0.3        11.2     4.7            10 of 10
+      10     0.0         0.9     0.7             7 of 10
+      10     0.1         3.8     1.9             9 of 10
+      10     0.5        20.3     7.8            10 of 10
+      10     0.7        30.1    12.7            10 of 10
+
+WHICH STEP DECIDES EACH KIND OF PROMPT (10 apps, repeat rate 30%, all runs together)
+share of the prompts of that kind that were decided by: memory / tier 1 / guard
+
+shared hash
+  exact repeat   (n=  205)  memory  22.9%  tier 1  75.1%  guard   2.0%
+  edited repeat  (n=  405)  memory   1.7%  tier 1  86.2%  guard  12.1%
+  new attack     (n= 1366)  memory   0.0%  tier 1  78.1%  guard  21.9%
+  harmless       (n= 8024)  memory   0.0%  tier 1  48.2%  guard  51.8%
+
+shared embedding
+  exact repeat   (n=  205)  memory  22.4%  tier 1  75.1%  guard   2.4%
+  edited repeat  (n=  405)  memory  14.3%  tier 1  80.0%  guard   5.7%
+  new attack     (n= 1366)  memory   0.2%  tier 1  78.2%  guard  21.6%
+  harmless       (n= 8024)  memory   0.0%  tier 1  48.1%  guard  51.8%

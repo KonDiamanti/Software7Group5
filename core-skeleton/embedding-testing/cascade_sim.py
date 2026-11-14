@@ -4,6 +4,8 @@
 #   2. tier 1 (logistic regression on embeddings)   -> block / pass / unsure
 #   3. guard (only when unsure), here always right  -> block / pass
 # every guard answer is learned: attacks go into the memory, all answers train tier 1
+# version 2: prints mean and standard deviation over the runs, the paired difference between
+# shared embedding and shared hash, and which step decides each kind of attack
 # tier 1 cutoffs follow the 2% rule from Section 4, measured on a calibration set
 # that is never used for training
 
@@ -118,15 +120,15 @@ class Brain:
 
     def decide(self, vec, text):
         if self.memory == "hash" and fingerprint(text) in self.fp:
-            return "block"
+            return "block", "memory"
         if self.memory == "embedding" and len(self.mem) and (self.mem @ vec).max() >= MEMORY_CUTOFF:
-            return "block"
+            return "block", "memory"
         p = self.clf.predict_proba(vec[None])[0, 1]
         if p >= self.hi:
-            return "block"
+            return "block", "tier 1"
         if p <= self.lo:
-            return "pass"
-        return "guard"
+            return "pass", "tier 1"
+        return "guard", "guard"
 
     def confirm(self, vec, text, label):
         if label == 1 and self.memory == "hash":
@@ -166,23 +168,28 @@ def make_traffic(rs, n_apps, repeat_rate):
                 if seen and rs.rand() < repeat_rate:
                     i, v = seen[rs.randint(len(seen))], rs.randint(3)   # 0 = exact copy
                     vec, text = (EA[i], attacks[i]) if v == 0 else (EV[i, v - 1], variants[i][v - 1])
+                    kind = "exact repeat" if v == 0 else "edited repeat"
                 else:
                     i = free_a.pop()
                     seen.append(i)
                     vec, text = EA[i], attacks[i]
-                traffic.append((int(app), vec, text, 1))
+                    kind = "new attack"
+                traffic.append((int(app), vec, text, 1, kind))
             else:
                 j = free_h.pop() if free_h else perm_h[SEED_SIZE + CAL_SIZE + rs.randint(nh - SEED_SIZE - CAL_SIZE)]
-                traffic.append((int(app), EH[j], harmless[j], 0))
+                traffic.append((int(app), EH[j], harmless[j], 0, "harmless"))
     return seedX, seedy, cal, traffic
 
 
 def run(seedX, seedy, cal, traffic, n_apps, memory, learn, separate):
     brains = [Brain(seedX, seedy, cal, memory, learn) for _ in range(n_apps if separate else 1)]
     guard = missed = falseb = 0
-    for app, vec, text, label in traffic:
+    stats = {}                                   # kind -> step that decided -> count
+    for app, vec, text, label, kind in traffic:
         b = brains[app if separate else 0]
-        d = b.decide(vec, text)
+        d, by = b.decide(vec, text)
+        stats.setdefault(kind, {}).setdefault(by, 0)
+        stats[kind][by] += 1
         if d == "guard":
             guard += 1
             b.confirm(vec, text, label)
@@ -192,7 +199,7 @@ def run(seedX, seedy, cal, traffic, n_apps, memory, learn, separate):
             missed += 1
     n_att = sum(t[3] for t in traffic)
     return (1000 * guard / len(traffic), 100 * missed / max(n_att, 1),
-            100 * falseb / max(len(traffic) - n_att, 1))
+            100 * falseb / max(len(traffic) - n_att, 1), stats)
 
 
 combos = [(n, MAIN_REPEAT) for n in APPS] + [(max(APPS), r) for r in REPEATS if r != MAIN_REPEAT]
@@ -210,11 +217,14 @@ head = "".join(f"{nm:>25}" for nm in names)
 
 
 def table(title, metric, rows, label):
-    print("\n" + title)
+    print("\n" + title + "  (mean +- standard deviation over the runs)")
     print(f"{label:>8}" + head)
     for key in rows:
-        vals = "".join(f"{np.mean([x[metric] for x in res[key][nm]]):25.1f}" for nm in names)
-        print(f"{key[0] if label == 'apps' else key[1]:>8}" + vals)
+        cells = ""
+        for nm in names:
+            v = [x[metric] for x in res[key][nm]]
+            cells += f"{np.mean(v):17.1f} +-{np.std(v):5.1f}   "
+        print(f"{key[0] if label == 'apps' else key[1]:>8}" + cells)
 
 
 main_rows = [(n, MAIN_REPEAT) for n in APPS]
@@ -229,3 +239,42 @@ print(f"\nSAME, with {max(APPS)} apps and different repeat rates")
 table("GUARD CALLS per 1,000 prompts, by repeat rate", 0, rep_rows, "repeat")
 table("MISSED ATTACKS %, by repeat rate", 1, rep_rows, "repeat")
 table("HARMLESS BLOCKED %, by repeat rate", 2, rep_rows, "repeat")
+
+
+# ---- is the embedding better than the hash end to end? paired over the same traffic ----
+print("\nPAIRED DIFFERENCE in guard calls per 1,000 prompts: shared embedding minus shared hash")
+print("(negative = the embedding needs fewer guard calls; same traffic in every run)")
+print(f"{'apps':>8}{'repeat':>8}{'mean diff':>12}{'std':>8}{'embedding lower in':>22}")
+for key in main_rows + [k for k in rep_rows if k not in main_rows]:
+    d = [e[0] - h[0] for e, h in zip(res[key]["shared embedding"], res[key]["shared hash"])]
+    print(f"{key[0]:>8}{key[1]:>8.1f}{np.mean(d):12.1f}{np.std(d):8.1f}{sum(x < 0 for x in d):>16} of {len(d)}")
+
+# ---- is sharing better than not sharing? paired over the same traffic ----
+PAIRS = [("separate", "shared embedding"), ("separate", "shared hash"),
+         ("static cascade", "shared embedding"), ("static cascade", "shared emb. memory only")]
+print("\nPAIRED DIFFERENCE in guard calls per 1,000 prompts: first condition minus second condition")
+print("(positive = the second one needs fewer guard calls; same traffic in every run)")
+for a, b in PAIRS:
+    print(f"\n{a}  minus  {b}")
+    print(f"{'apps':>8}{'repeat':>8}{'mean diff':>12}{'std':>8}{'second lower in':>20}")
+    for key in main_rows + [k for k in rep_rows if k not in main_rows]:
+        d = [x[0] - y[0] for x, y in zip(res[key][a], res[key][b])]
+        print(f"{key[0]:>8}{key[1]:>8.1f}{np.mean(d):12.1f}{np.std(d):8.1f}{sum(v > 0 for v in d):>14} of {len(d)}")
+
+# ---- which step decides each kind of attack (10 apps, main repeat rate, all runs added up) ----
+print(f"\nWHICH STEP DECIDES EACH KIND OF PROMPT ({max(APPS)} apps, repeat rate {int(100 * MAIN_REPEAT)}%, all runs together)")
+print("share of the prompts of that kind that were decided by: memory / tier 1 / guard")
+key = (max(APPS), MAIN_REPEAT)
+for nm in ["shared hash", "shared embedding"]:
+    print(f"\n{nm}")
+    total = {}
+    for x in res[key][nm]:
+        for kind, by in x[3].items():
+            for step, c in by.items():
+                total.setdefault(kind, {}).setdefault(step, 0)
+                total[kind][step] += c
+    for kind in ["exact repeat", "edited repeat", "new attack", "harmless"]:
+        if kind in total:
+            n = sum(total[kind].values())
+            parts = "  ".join(f"{step} {100 * total[kind].get(step, 0) / n:5.1f}%" for step in ["memory", "tier 1", "guard"])
+            print(f"  {kind:<14} (n={n:>5})  {parts}")
