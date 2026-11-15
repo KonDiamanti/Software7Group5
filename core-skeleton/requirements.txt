@@ -4,3 +4,6 @@ numpy
 langdetect
 datasets
 sentence-transformers
+fastapi
+httpx
+uvicorn
