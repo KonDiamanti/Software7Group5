@@ -1,0 +1,3 @@
+command: python -m scripts.try_guard --guard prompt-guard-2
+deepset: caught 8 of 60 attacks, blocked 0 of 56 harmless prompts, 249 ms per prompt
+jackhhao: caught 130 of 139 attacks, blocked 1 of 123 harmless prompts, 761 ms per prompt

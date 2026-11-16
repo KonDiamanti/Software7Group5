@@ -32,9 +32,20 @@ Apps send prompts to the service through the API. The traffic comes only from th
 - **Mistakes did not change clearly.** Missed attacks were 3.0% without sharing and 3.5% with sharing at 10 apps with learning (3.3% and 3.2% with a fixed tier 1). Harmless blocked went from 0.4% to 0.6%. With 3 runs these differences are about one attack per run, so we cannot separate them from noise.
 - **Most guard calls are not about attacks.** About 37% to 43% of all prompts reach the guard, most of them harmless prompts that tier 1 is unsure about. Sharing attack memory cannot change that.
 
+## Real guard (Prompt Guard 2)
+
+The wrapper `src/guards/hf_guard.py` runs Prompt Guard 2 (86M) instead of the stub. It runs on the laptop CPU.
+
+- **Alone on the test sets** (`python -m scripts.try_guard --guard prompt-guard-2`): jackhhao 130 of 139 attacks caught, 1 of 123 harmless prompts blocked. deepset 8 of 60 attacks caught, 0 of 56 harmless blocked. These are the same numbers as in `classifier-testing/RESULTS.md` (93.5% and 0.8% on jackhhao, 13.3% and 0.0% on deepset). It needs 249 ms per prompt on deepset and 761 ms on jackhhao (longer prompts) on our CPU, against 33 ms in the table (a GPU).
+- **In the demo with 10 apps, tier 1 fixed, 30% repeats, 3 runs:** sharing saved only 1.3 guard calls per 1,000 prompts (std 1.2, fewer in 2 of 3 runs), against 9.6 with the stub guard. 20.0% of the attacks were missed in both conditions (3.3% with the stub). Exact repeats decided by memory with sharing: 7% (with the stub: 20%).
+- **The reason:** the shared database only stores what the guard blocks. Prompt Guard 2 passes most of the deepset injections, so those attacks are never stored and the guard sees them again when they come back. The network effect is only as good as the guard's detection.
+- **With feedback** (`--feedback 0.5`, the apps report half of the attacks that were passed through `/feedback`; on average 15.7 reports per run): 419.0 guard calls without sharing, 412.3 with sharing. Saved 6.7 (std 1.2), fewer in 3 of 3 runs. Exact repeats decided by memory 18% with sharing (3% without), edited repeats 10% (1%).
+- **Sharing now also lowers the missed attacks:** 19.7% without sharing, 17.2% with sharing (means of 3 runs). With the always-right stub there was nothing to protect, with an imperfect guard a report from one app protects the others. About 17% are still missed, because the guard's weakness on injections is larger than what the reports fix. Harmless blocked went from 0.4% to 0.6%.
+- **The reporting rate of 50% is our assumption** about how often an app notices an attack that got through.
+
 ## Limits
 
-- The guard is a stand-in that is always right.
+- Most runs use a stand-in guard that is always right. The runs with Prompt Guard 2 are only 3 runs each, with a fixed tier 1 (not with tier 1 learning).
 - The repeats in the traffic are made by us (a third exact copies, two thirds script-edited), not real attacker behaviour. Only about 6% of the prompts are repeats.
 - Small scale: 100 prompts per app, 3 to 10 runs. The spread between runs is large for the small settings, so read those as a direction. Only the 10-app runs have a small spread.
 - The runs with tier 1 learning are only 3 runs each. The retraining happens after every 20 guard answers, so an app that is alone (no sharing) retrains on its own few answers.

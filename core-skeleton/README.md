@@ -25,14 +25,16 @@ Apps talk to the service through a small API. With sharing on, all apps use one 
   - base.py: the shape every database version has to offer (add, lookup, count)
   - hash_db.py: exact match on a hash of the cleaned prompt, stored in sqlite
   - embedding_db.py: finds attacks that are close in meaning (near-copies, small edits, leetspeak) with a cosine similarity cutoff (default 0.90), stored in sqlite. It needs sentence-transformers.
-- src/guards/stub.py: a stand-in guard that looks the answer up in a table of known labels, so it is always right. A real guard replaces it later.
+- src/guards/stub.py: a stand-in guard that looks the answer up in a table of known labels, so it is always right (the default in the demo)
+- src/guards/hf_guard.py: a real guard, a small trained classifier from Hugging Face (Prompt Guard 2 or the ProtectAI model). Same `check(text)` as the stub. Prompt Guard 2 needs a Hugging Face login and approved access, ProtectAI needs neither. The answer for a text is remembered, so the demo does not run the model twice for the same text.
 - src/router.py: sends a prompt to the guard only when tier 1 is unsure
 - src/service.py: the whole flow for one app (database, tier 1, guard). After a guard answer it stores confirmed attacks in the database and calls an optional `on_guard_answer(text, result)`.
 - src/api.py: the web layer (FastAPI), see below
 - scripts/demo.py: apps using the service through the API, with and without sharing
+- scripts/try_guard.py: tries a real guard alone on the deepset and jackhhao test prompts
 - scripts/: import_attacks.py and network_simulation.py (the first network effect experiment, hash database only)
 - embedding-testing/: experiments and results for the embedding database (see RESULTS.md in that folder)
-- tests/: 73 unit tests
+- tests/: 81 unit tests
 - RESULTS.md: results for tier 1 and the demo, raw outputs in `results/`
 
 ## API
@@ -48,8 +50,8 @@ Apps talk to the service through a small API. With sharing on, all apps use one 
 
 ## Not built yet
 
-- A real guard model in `src/guards/` (the group has not chosen one yet). The code to run Prompt Guard 2, Qwen3Guard and Llama Guard 3 is in `classifier-testing/classifiers.py`, it only needs a small wrapper that returns a `Result`.
-- A file that starts the real service (embedding database, trained tier 1, real guard) as a web server.
+- The group has not chosen the real guard yet. The wrapper works for Prompt Guard 2 and ProtectAI. Qwen3Guard and Llama Guard 3 (in `classifier-testing/classifiers.py`) would need their own wrapper.
+- A file that starts the real service (embedding database, trained tier 1, real guard) as a web server. Only the demo and the tests build the API for now.
 - Decisions about what the shared database stores: in the prototype it stores the prompt text.
 
 ## Run (from inside the core-skeleton folder)
@@ -64,11 +66,17 @@ Train tier 1 (needs internet once, about a minute) and run the demo:
     python -m scripts.demo --apps 10
     python -m scripts.demo --apps 10 --learn --retrain-every 20 --runs 3
 
-`--more-data` also trains on the train splits of deepset and jackhhao. The model is saved to `models\tier1_char_svm_more_data.joblib`, and the demo expects that file. `--learn` lets tier 1 learn from the guard's answers, which makes the demo slow because it retrains. `--memory hash` uses the exact-match database instead of the embedding database.
+Try a real guard (Prompt Guard 2 needs `hf auth login` and approved access first), then use it in the demo:
+
+    python -m scripts.try_guard --guard prompt-guard-2
+    python -m scripts.demo --apps 10 --guard prompt-guard-2
+    python -m scripts.demo --apps 10 --guard prompt-guard-2 --feedback 0.5
+
+`--more-data` also trains on the train splits of deepset and jackhhao. The model is saved to `models\tier1_char_svm_more_data.joblib`, and the demo expects that file. `--learn` lets tier 1 learn from the guard's answers, which makes the demo slow because it retrains. `--memory hash` uses the exact-match database instead of the embedding database. `--feedback 0.5` lets the apps report half of the attacks that were passed through `/feedback`.
 
 ## Known limits
 
-- The guard in the demo is a stand-in that is always right. Real guards make mistakes.
+- By default the guard in the demo is a stand-in that is always right. Real guards make mistakes, and the shared database only stores what the guard blocks, so the network effect depends on how many attacks the guard catches (see RESULTS.md).
 - The hash database only finds exact repeats (after cleaning). One changed word gives no match.
 - The embedding database finds near-copies, not attacks reworded completely. Results and experiments: embedding-testing/RESULTS.md.
 - The tier-1 model only knows English, so other languages go to the guard.
