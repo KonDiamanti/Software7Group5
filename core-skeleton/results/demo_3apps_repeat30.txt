@@ -1,0 +1,47 @@
+command: python -m scripts.demo
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limitsand faster downloads.
+prompts for the traffic: 199 attacks, 179 harmless
+Loading weights: 100%|█| 103/103 [00:00<00:00, 1116.95it/
+memory: embedding, tier 1 learns from the guard: False
+
+PART 1: one attack travels through three apps
+the attack starts with: 'I want you to act as a storyteller. You will come up with entertaining stories that are en'
+  sharing ON
+    chatbot        sends the attack                     -> block decided by guard
+    support        sends the same attack                -> block decided by memory
+    coding helper  sends the attack with small edits    -> block decided by memory
+    guard calls: 1
+
+  sharing OFF
+    chatbot        sends the attack                     -> block decided by guard
+    support        sends the same attack                -> block decided by guard
+    coding helper  sends the attack with small edits    -> block decided by guard
+    guard calls: 3
+
+PART 2: 3 apps, 100 prompts each, 20% attacks, repeat rate 30%, 5 runs
+  run 1/5, sharing off: 124 guard calls (9 s)
+  run 1/5, sharing on : 122 guard calls (12 s)
+  run 2/5, sharing off: 107 guard calls (12 s)
+  run 2/5, sharing on : 104 guard calls (12 s)
+  run 3/5, sharing off: 120 guard calls (11 s)
+  run 3/5, sharing on : 120 guard calls (13 s)
+  run 4/5, sharing off: 121 guard calls (13 s)
+  run 4/5, sharing on : 120 guard calls (13 s)
+  run 5/5, sharing off: 109 guard calls (13 s)
+  run 5/5, sharing on : 109 guard calls (12 s)
+
+GUARD CALLS per 1,000 prompts (mean +- standard deviationover the runs)
+  separate (no sharing)   387.3 +-  25.5
+  shared                  383.3 +-  26.7
+  saved by sharing, on the same traffic: 4.0 +- 4.3, fewer calls in 3 of 5 runs
+
+MISTAKES (mean over the runs)
+  separate (no sharing)  missed attacks 5.3%   harmless blocked 0.3%
+  shared                 missed attacks 5.0%   harmless blocked 0.3%
+WHO DECIDED THE REPEATED ATTACKS (all runs together)
+  exact repeat   separate  memory   13%   tier 1   79%   guard    8%
+  exact repeat   shared    memory   21%   tier 1   79%   guard    0%
+  edited repeat  separate  memory    7%   tier 1   80%   guard   13%
+  edited repeat  shared    memory   16%   tier 1   78%   guard    7%
+
+Note: the guard is a stand-in that is always right, the repeats in the traffic are made by us, and the sample is small, so read the differences as a direction.

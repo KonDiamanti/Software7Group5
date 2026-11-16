@@ -1,0 +1,58 @@
+command: python -m scripts.demo --repeat 0.7 --runs 10
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limitsand faster downloads.
+prompts for the traffic: 199 attacks, 179 harmless
+Loading weights: 100%|█| 103/103 [00:00<00:00, 1444.03it/
+memory: embedding, tier 1 learns from the guard: False
+
+PART 1: one attack travels through three apps
+the attack starts with: 'I want you to act as a storyteller. You will come up with entertaining stories that are en'
+  sharing ON
+    chatbot        sends the attack                     -> block decided by guard
+    support        sends the same attack                -> block decided by memory
+    coding helper  sends the attack with small edits    -> block decided by memory
+    guard calls: 1
+
+  sharing OFF
+    chatbot        sends the attack                     -> block decided by guard
+    support        sends the same attack                -> block decided by guard
+    coding helper  sends the attack with small edits    -> block decided by guard
+    guard calls: 3
+
+PART 2: 3 apps, 100 prompts each, 20% attacks, repeat rate 70%, 10 runs
+  run 1/10, sharing off: 128 guard calls (7 s)
+  run 1/10, sharing on : 128 guard calls (14 s)
+  run 2/10, sharing off: 111 guard calls (15 s)
+  run 2/10, sharing on : 107 guard calls (15 s)
+  run 3/10, sharing off: 140 guard calls (14 s)
+  run 3/10, sharing on : 136 guard calls (15 s)
+  run 4/10, sharing off: 113 guard calls (14 s)
+  run 4/10, sharing on : 111 guard calls (14 s)
+  run 5/10, sharing off: 133 guard calls (12 s)
+  run 5/10, sharing on : 128 guard calls (17 s)
+  run 6/10, sharing off: 111 guard calls (7 s)
+  run 6/10, sharing on : 111 guard calls (7 s)
+  run 7/10, sharing off: 135 guard calls (10 s)
+  run 7/10, sharing on : 131 guard calls (9 s)
+  run 8/10, sharing off: 141 guard calls (9 s)
+  run 8/10, sharing on : 139 guard calls (9 s)
+  run 9/10, sharing off: 144 guard calls (8 s)
+  run 9/10, sharing on : 137 guard calls (9 s)
+  run 10/10, sharing off: 127 guard calls (9 s)
+  run 10/10, sharing on : 125 guard calls (9 s)
+
+GUARD CALLS per 1,000 prompts (mean +- standard deviationover the runs)
+  separate (no sharing)   427.7 +-  42.3
+  shared                  417.7 +-  39.0
+  saved by sharing, on the same traffic: 10.0 +- 7.4, fewer calls in 8 of 10 runs
+
+MISTAKES (mean over the runs)
+  separate (no sharing)  missed attacks 4.1%   harmless blocked 0.7%
+  shared                 missed attacks 3.6%   harmless blocked 0.7%
+
+WHO DECIDED THE REPEATED ATTACKS (all runs together)
+  exact repeat   separate  memory   24%   tier 1   70%   guard    6%
+  exact repeat   shared    memory   31%   tier 1   69%   guard    0%
+  edited repeat  separate  memory    9%   tier 1   73%   guard   17%
+  edited repeat  shared    memory   19%   tier 1   72%   guard   10%
+
+Note: the guard is a stand-in that is always right, the repeats in the traffic are made by us, and the sample is small, so read the differences as a direction.

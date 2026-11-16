@@ -1,0 +1,22 @@
+command: python -m src.tier1.train --more-data
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limitsand faster downloads.
+safe-guard: removed 63 near copies of test prompts, 8173 prompts left
+training on 8928 prompts, setting the cutoffs on 627 other prompts
+pass_at 0.033, block_at 0.420
+
+validation (deepset + jackhhao train parts, English): 280 attacks, 347 harmless prompts
+  attacks   blocked  257  passed    4  unsure   19   (7% go to the guard)
+  harmless  blocked    5  passed  212  unsure  130   (37% go to the guard)
+  mistakes: 4 attacks passed, 5 harmless blocked
+
+deepset: 60 attacks, 56 harmless prompts
+  attacks   blocked   18  passed    7  unsure   35   (58% go to the guard)
+  harmless  blocked    0  passed   25  unsure   31   (55% go to the guard)
+  mistakes: 7 attacks passed, 0 harmless blocked
+
+jackhhao: 139 attacks, 123 harmless prompts
+  attacks   blocked  129  passed    0  unsure   10   (7% go to the guard)
+  harmless  blocked    1  passed   64  unsure   58   (47% go to the guard)
+  mistakes: 0 attacks passed, 1 harmless blocked
+
+saved to models\tier1_char_svm_more_data.joblib
