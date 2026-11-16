@@ -43,6 +43,26 @@ The wrapper `src/guards/hf_guard.py` runs Prompt Guard 2 (86M) instead of the st
 - **Sharing now also lowers the missed attacks:** 19.7% without sharing, 17.2% with sharing (means of 3 runs). With the always-right stub there was nothing to protect, with an imperfect guard a report from one app protects the others. About 17% are still missed, because the guard's weakness on injections is larger than what the reports fix. Harmless blocked went from 0.4% to 0.6%.
 - **The reporting rate of 50% is our assumption** about how often an app notices an attack that got through.
 
+## Higher repeat rate (70%)
+
+The repeat rate of 30% is our assumption. To see how much it matters we ran the demo again with 70% repeats (10 apps, 5 runs, tier 1 fixed). The pool has only 199 attacks, so this is a sensitivity test, not a measurement of real traffic.
+
+| Guard | Feedback | Repeat rate | Guard calls saved per 1,000 prompts | Missed attacks (separate -> shared) | Exact repeats decided by memory (separate -> shared) |
+|---|---|---|---|---|---|
+| stub (always right) | none | 30% | 9.6 | n/a | 20% (shared) |
+| stub (always right) | none | 70% | 16.8 +- 4.7 (5 of 5 runs) | 5.9% -> 5.4% | 4% -> 21% |
+| Prompt Guard 2 | none | 30% | 1.3 +- 1.2 (2 of 3 runs) | 20.0% -> 20.0% | n/a -> 7% |
+| Prompt Guard 2 | none | 70% | 3.0 +- 1.9 (5 of 5 runs) | 22.2% -> 21.9% | 0% -> 2% |
+| Prompt Guard 2 | 50% | 30% | 6.7 +- 1.2 (3 of 3 runs) | 19.7% -> 17.2% | 3% -> 18% |
+| Prompt Guard 2 | 50% | 70% | 16.4 +- 6.7 (5 of 5 runs) | 21.0% -> 12.2% | 2% -> 22% |
+
+- **More repeats help, as expected.** With the stub, the saving grows from 9.6 to 16.8 calls per 1,000 prompts when repeats go from 30% to 70%. Edited repeats are also caught by memory (2% -> 14%), which an exact-match database would not do.
+- **A real guard that misses attacks stops this.** With Prompt Guard 2 and no feedback, the saving at 70% repeats is only 3.0, and memory decides 2% of the exact repeats. The database only stores what the guard blocks, so repeats of passed attacks never reach it.
+- **Feedback brings the saving back to the stub level** (16.4 against 16.8) and lowers the missed attacks from 21.0% to 12.2% (13.8 reports per run). Harmless blocked stays at 0.5%. A report from one app protects all the other apps.
+- **Still small in absolute terms.** The saving is about 16 of 440 guard calls (under 4%), because most guard calls come from harmless prompts that tier 1 is unsure about, and sharing cannot remove those.
+- **Assumptions behind the feedback result:** the apps report 50% of the attacks that got through, and every report is correct. In real use an app needs a way to notice a missed attack, and a wrong or malicious report would put a harmless prompt into the shared database.
+- Raw outputs: `results/demo_10apps_repeat70.txt`, `results/demo_10apps_prompt_guard_2_repeat70.txt`, `results/demo_10apps_prompt_guard_2_repeat70_feedback.txt`.
+
 ## Limits
 
 - Most runs use a stand-in guard that is always right. The runs with Prompt Guard 2 are only 3 runs each, with a fixed tier 1 (not with tier 1 learning).
