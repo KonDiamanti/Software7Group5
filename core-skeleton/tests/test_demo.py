@@ -96,6 +96,33 @@ class RunTests(unittest.TestCase):
         edited_by_memory = lambda r: r["steps"][("edited repeat", "memory")]
         self.assertGreater(edited_by_memory(shared_embedding), edited_by_memory(shared_hash))
 
+    def test_a_real_guard_can_be_used_and_its_mistakes_count(self):
+        class BadGuard:
+            """Passes every attack, so every attack is a missed attack."""
+            def check(self, text):
+                return Result(PASS, 0.0, "guard_pass")
+
+        traffic, labels = make_traffic(ATTACKS, HARMLESS, random.Random(7))
+        guard = BadGuard()
+        result = run_condition(traffic, labels, lambda: UnsureTier1(), HashAttackDB, True, make_guard=lambda app: guard)
+        self.assertEqual(result["missed_pct"], 100)
+        self.assertEqual(result["attacks_stored"], 0)   # a guard pass is never stored
+
+    def test_feedback_brings_back_the_sharing_effect_with_a_weak_guard(self):
+        class BadGuard:
+            def check(self, text):
+                return Result(PASS, 0.0, "guard_pass")
+
+        traffic, labels = make_traffic(ATTACKS, HARMLESS, random.Random(8), repeat_rate=0.6)
+        bad = BadGuard()
+        run = lambda feedback: run_condition(traffic, labels, lambda: UnsureTier1(), HashAttackDB, True,
+                                             make_guard=lambda app: bad, feedback=feedback)
+        without, with_feedback = run(0.0), run(1.0)
+        self.assertEqual(without["feedback_reports"], 0)
+        self.assertGreater(with_feedback["feedback_reports"], 0)
+        self.assertGreater(with_feedback["attacks_stored"], 0)
+        self.assertLess(with_feedback["missed_pct"], without["missed_pct"])
+
     def test_story_runs(self):
         story(UnsureTier1(), HashAttackDB, ATTACKS, random.Random(0))
 

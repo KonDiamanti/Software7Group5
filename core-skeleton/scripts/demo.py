@@ -7,11 +7,13 @@ Run from inside the core-skeleton folder (the model must be trained first, see s
     python -m scripts.demo --apps 10            # more apps: the saving from sharing grows with the number of apps
     python -m scripts.demo --memory hash        # exact-match memory instead of the embedding memory
     python -m scripts.demo --learn              # tier 1 also learns from the guard (slow: it retrains)
+    python -m scripts.demo --guard protectai    # a real guard model instead of the stub (see scripts/try_guard.py)
+    python -m scripts.demo --guard prompt-guard-2 --feedback 0.5   # apps report half of the attacks that got through
 
 Part 1 shows one attack travelling through the three apps. Part 2 sends the same traffic to the
 three apps with and without sharing and counts the guard calls.
 
-What is a stand-in here: the guard (always right, it looks the answer up) and the traffic
+What is a stand-in here: the guard (by default always right, it looks the answer up) and the traffic
 (prompts from the test sets of deepset and jackhhao, repeats made by us).
 """
 
@@ -97,18 +99,23 @@ def make_traffic(attacks, harmless, rng, per_app=100, attack_share=0.20, repeat_
 
 
 # ---- one run: all traffic through the API ----
-def run_condition(traffic, labels, make_tier1, make_db, share):
-    services = Services(make_db=make_db, make_tier1=make_tier1,
-                        make_guard=lambda app: LookupGuard(labels), share=share)
+def run_condition(traffic, labels, make_tier1, make_db, share, make_guard=None, feedback=0.0, seed=0):
+    """feedback: the share of the missed attacks (attacks that were passed) that the app reports through /feedback."""
+    make_guard = make_guard or (lambda app: LookupGuard(labels))   # the stub that is always right
+    services = Services(make_db=make_db, make_tier1=make_tier1, make_guard=make_guard, share=share)
     steps = Counter()   # (kind, decided_by) -> how many prompts
-    missed = false_blocks = 0
+    missed = false_blocks = reports = 0
     with TestClient(create_app(services)) as client:
-        for app, text, is_attack, kind in traffic:
+        for index, (app, text, is_attack, kind) in enumerate(traffic):
             response = client.post("/check", json={"app": app, "text": text})
             response.raise_for_status()
             answer = response.json()
             steps[(kind, answer["decided_by"])] += 1
             missed += is_attack and answer["verdict"] == "pass"
+            # the same draw for the same position, so both conditions report the same prompts
+            if is_attack and answer["verdict"] == "pass" and random.Random(f"feedback-{seed}-{index}").random() < feedback:
+                client.post("/feedback", json={"app": app, "text": text}).raise_for_status()
+                reports += 1
             false_blocks += (not is_attack) and answer["verdict"] == "block"
         attacks_stored = client.get("/health").json()["attacks_stored"]
     attacks = sum(1 for t in traffic if t[2])
@@ -119,21 +126,24 @@ def run_condition(traffic, labels, make_tier1, make_db, share):
         "false_block_pct": 100 * false_blocks / max(len(traffic) - attacks, 1),
         "steps": steps,
         "attacks_stored": attacks_stored,
+        "feedback_reports": reports,
     }
 
 
 # ---- part 1: one attack through three apps ----
-def find_unsure_attack(tier1, attacks):
-    """An attack that tier 1 cannot decide alone, so the guard has to look at it."""
+def find_unsure_attack(tier1, attacks, guard=None):
+    """An attack that tier 1 cannot decide alone, so the guard has to look at it
+    (and, with a real guard, that the guard really blocks)."""
     for text in attacks:
         result = tier1.check(text)
         if result.verdict == UNSURE and result.reason == "score":
-            return text
+            if guard is None or guard.check(text).verdict == "block":
+                return text
     return None
 
 
-def story(tier1, make_db, attacks, rng):
-    attack = find_unsure_attack(tier1, attacks)
+def story(tier1, make_db, attacks, rng, real_guard=None):
+    attack = find_unsure_attack(tier1, attacks, real_guard)
     if attack is None:
         print("No attack found that tier 1 leaves to the guard, skipping part 1.")
         return
@@ -141,11 +151,12 @@ def story(tier1, make_db, attacks, rng):
              ("support", attack, "the same attack"),
              ("coding helper", edited(attack, rng), "the attack with small edits")]
     labels = {text: True for _, text, _ in steps}
+    make_guard = (lambda app: real_guard) if real_guard else (lambda app: LookupGuard(labels))
     print("\nPART 1: one attack travels through three apps")
     print(f"the attack starts with: {attack[:90]!r}")
     for share in (True, False):
         services = Services(make_db=make_db, make_tier1=lambda: tier1,
-                            make_guard=lambda app: LookupGuard(labels), share=share)
+                            make_guard=make_guard, share=share)
         print(f"\n  sharing {'ON' if share else 'OFF'}")
         with TestClient(create_app(services)) as client:
             for app, text, what in steps:
@@ -160,7 +171,7 @@ def mean_std(values):
     return statistics.mean(values), (statistics.stdev(values) if len(values) > 1 else 0.0)
 
 
-def numbers(attacks, harmless, make_tier1, make_db, args):
+def numbers(attacks, harmless, make_tier1, make_db, args, make_guard=None):
     apps = app_names(args.apps)
     print(f"\nPART 2: {len(apps)} apps, {args.per_app} prompts each, 20% attacks, "
           f"repeat rate {args.repeat:.0%}, {args.runs} runs")
@@ -170,7 +181,8 @@ def numbers(attacks, harmless, make_tier1, make_db, args):
                                        per_app=args.per_app, repeat_rate=args.repeat, apps=apps)
         for share in (False, True):
             start = time.perf_counter()
-            results[share].append(run_condition(traffic, labels, make_tier1, make_db, share))
+            results[share].append(run_condition(traffic, labels, make_tier1, make_db, share, make_guard,
+                                                 feedback=args.feedback, seed=seed))
             print(f"  run {seed + 1}/{args.runs}, sharing {'on ' if share else 'off'}: "
                   f"{results[share][-1]['guard_calls']} guard calls ({time.perf_counter() - start:.0f} s)")
 
@@ -191,6 +203,10 @@ def numbers(attacks, harmless, make_tier1, make_db, args):
         print(f"  {name:22} missed attacks {mean_std([r['missed_pct'] for r in results[share]])[0]:.1f}%"
               f"   harmless blocked {mean_std([r['false_block_pct'] for r in results[share]])[0]:.1f}%")
 
+    if args.feedback:
+        print(f"  apps reported on average {mean_std([r['feedback_reports'] for r in results[True]])[0]:.1f} missed attacks "
+              f"per run through /feedback ({args.feedback:.0%} of them)")
+
     print("\nWHO DECIDED THE REPEATED ATTACKS (all runs together)")
     for kind in ("exact repeat", "edited repeat"):
         for share, name in ((False, "separate"), (True, "shared")):
@@ -203,7 +219,9 @@ def numbers(attacks, harmless, make_tier1, make_db, args):
             print(f"  {kind:14} {name:9} memory {100 * total['memory'] / n_all:4.0f}%   "
                   f"tier 1 {100 * total['tier1'] / n_all:4.0f}%   guard {100 * total['guard'] / n_all:4.0f}%")
 
-    print("\nNote: the guard is a stand-in that is always right, the repeats in the traffic are made by us,"
+    guard_note = ("the guard is a real model, so its mistakes count too" if make_guard
+                  else "the guard is a stand-in that is always right")
+    print(f"\nNote: {guard_note}, the repeats in the traffic are made by us,"
           " and the sample is small, so read the differences as a direction.")
 
 
@@ -227,8 +245,12 @@ def main():
     parser.add_argument("--per-app", type=int, default=100, help="prompts per app")
     parser.add_argument("--repeat", type=float, default=0.30, help="share of the attacks that are repeats")
     parser.add_argument("--memory", choices=["embedding", "hash"], default="embedding")
+    parser.add_argument("--guard", choices=["stub", "prompt-guard-2", "protectai"], default="stub",
+                        help="the guard: the stub that is always right, or a real model (scripts/try_guard.py tests it first)")
     parser.add_argument("--learn", action="store_true", help="tier 1 learns from the guard (slow)")
     parser.add_argument("--retrain-every", type=int, default=50)
+    parser.add_argument("--feedback", type=float, default=0.0,
+                        help="share of the missed attacks that the apps report through /feedback (0 to 1)")
     parser.add_argument("--model", default=str(MODEL_PATH))
     args = parser.parse_args()
 
@@ -252,9 +274,15 @@ def main():
     else:
         make_tier1 = lambda: tier1
 
-    print(f"memory: {args.memory}, tier 1 learns from the guard: {args.learn}")
-    story(tier1, make_db, attacks, random.Random(0))
-    numbers(attacks, harmless, make_tier1, make_db, args)
+    real_guard = None
+    if args.guard != "stub":
+        from src.guards.hf_guard import MODELS, HFGuard
+        real_guard = HFGuard(MODELS[args.guard])   # one model for all apps
+
+    print(f"memory: {args.memory}, tier 1 learns from the guard: {args.learn}, guard: {args.guard}, "
+          f"feedback: {args.feedback:.0%}")
+    story(tier1, make_db, attacks, random.Random(0), real_guard)
+    numbers(attacks, harmless, make_tier1, make_db, args, (lambda app: real_guard) if real_guard else None)
 
 
 if __name__ == "__main__":
