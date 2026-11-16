@@ -77,12 +77,8 @@ def report(tier1, name, texts, labels):
     print(f"  mistakes: {counts[1][PASS]} attacks passed, {counts[0][BLOCK]} harmless blocked")
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--more-data", action="store_true",
-                        help="also use the train splits of deepset and jackhhao (half to train, half to set the cutoffs)")
-    args = parser.parse_args()
-
+def prepare_data(more_data):
+    """The training data, the data for the cutoffs and the test sets. The demo uses this too."""
     test_sets = load_test_sets()
     test_texts = [t for x, _ in test_sets.values() for t in x]
 
@@ -91,7 +87,7 @@ def main():
     texts, labels = remove_near_copies(texts, labels, test_texts)
     print(f"safe-guard: removed {before - len(texts)} near copies of test prompts, {len(texts)} prompts left")
 
-    if args.more_data:
+    if more_data:
         # cutoffs are set on deepset and jackhhao prompts that the model has not seen,
         # because the cutoffs set on safe-guard were too optimistic for other kinds of prompts
         extra_x, extra_y = load_extra_training()
@@ -105,6 +101,16 @@ def main():
     else:
         fit_x, val_x, fit_y, val_y = train_test_split(texts, labels, test_size=0.2, random_state=0, stratify=labels)
         val_name = "validation (safe-guard)"
+    return fit_x, fit_y, val_x, val_y, val_name, test_sets
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--more-data", action="store_true",
+                        help="also use the train splits of deepset and jackhhao (half to train, half to set the cutoffs)")
+    args = parser.parse_args()
+
+    fit_x, fit_y, val_x, val_y, val_name, test_sets = prepare_data(args.more_data)
     print(f"training on {len(fit_x)} prompts, setting the cutoffs on {len(val_x)} other prompts")
 
     model = make_model().fit(fit_x, fit_y)
