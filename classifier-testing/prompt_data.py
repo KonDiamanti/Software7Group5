@@ -10,8 +10,8 @@ OUR_PROMPTS = Path(__file__).with_name("our_prompts.csv")
 NEAR_COPY = 0.9   # cosine similarity of TF-IDF vectors from which two prompts count as near copies
 
 
-def load_test_prompts(hackaprompt_sample=200):
-    """deepset and jackhhao (test splits), a sample of HackAPrompt attacks that worked, and our own prompts."""
+def load_test_prompts(hackaprompt_sample=500):
+    """deepset and jackhhao (test splits), balanced HackAPrompt data, and our own prompts."""
     sets = [
         pd.DataFrame([
             {"dataset": "deepset", "text": row["text"], "label": int(row["label"])}
@@ -34,13 +34,23 @@ def load_test_prompts(hackaprompt_sample=200):
 
 def load_hackaprompt(sample):
     hackaprompt = (load_dataset("hackaprompt/hackaprompt-dataset", split="train")
-                   .select_columns(["user_input", "correct", "level"]).to_pandas())
-    worked = hackaprompt[(hackaprompt["correct"].astype(str).str.lower() == "true") & hackaprompt["user_input"].notna()]
+                   .select_columns(["user_input", "correct"]).to_pandas())
+    worked = hackaprompt[hackaprompt["correct"] & hackaprompt["user_input"].notna()]
     worked = worked.assign(user_input=worked["user_input"].str.strip())
     worked = worked[worked["user_input"] != ""].drop_duplicates("user_input")
-    picked = worked.sample(n=sample, random_state=0)
-    print(f"HackAPrompt: picked {len(picked)} of the {len(worked)} different attacks that worked.")
-    return pd.DataFrame({"dataset": "hackaprompt", "text": picked["user_input"], "label": 1})
+    attacks = worked.sample(n=sample, random_state=0)
+
+    safe_guard = load_dataset("xTRam1/safe-guard-prompt-injection", split="train").to_pandas()
+    harmless = safe_guard[(safe_guard["label"] == 0) & safe_guard["text"].notna()]
+    harmless = harmless.assign(text=harmless["text"].str.strip())
+    harmless = harmless[harmless["text"] != ""].drop_duplicates("text")
+    harmless = harmless.sample(n=sample, random_state=0)
+
+    print(f"HackAPrompt: picked {len(attacks)} attacks and {len(harmless)} verified harmless prompts.")
+    return pd.concat([
+        pd.DataFrame({"dataset": "hackaprompt", "text": attacks["user_input"], "label": 1}),
+        pd.DataFrame({"dataset": "hackaprompt", "text": harmless["text"], "label": 0}),
+    ], ignore_index=True)
 
 
 def load_training_data(test_texts):
