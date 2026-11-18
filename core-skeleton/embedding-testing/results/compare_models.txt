@@ -1,0 +1,27 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+database: 946 attacks, harmless: 1037 dataset + 25 look-alikes
+rewordings: 150 (5 for each of 30 attacks)
+
+======================================================================
+MODEL: all-MiniLM-L6-v2
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2610.53it/s]
+memory (closest attack): AUC 0.880, at 1% false matches the cutoff is 0.85 and it recognises 6.7% of the rewordings
+classifier on embeddings: AUC 0.940, at 1% false alarms it catches 39.3% of the rewordings
+memory with k known rewordings of the same attack (same cutoff as above):
+  k=0:   6.7%   k=1:   7.3%   k=2:   8.0%   k=3:   8.7%   k=4:   9.3%
+
+======================================================================
+MODEL: BAAI/bge-small-en-v1.5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights:  14%|█▍        | 28/199 [00:00<00:00, 243.78it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1184.43it/s]
+memory (closest attack): AUC 0.864, at 1% false matches the cutoff is 0.91 and it recognises 4.0% of the rewordings
+classifier on embeddings: AUC 0.939, at 1% false alarms it catches 39.3% of the rewordings
+memory with k known rewordings of the same attack (same cutoff as above):
+  k=0:   4.0%   k=1:   4.3%   k=2:   4.7%   k=3:   5.0%   k=4:   5.3%
+
+======================================================================
+MODEL: all-mpnet-base-v2
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights:   3%|▎         | 5/199 [00:00<00:06, 31.33it/s]Loading weights:  10%|█         | 20/199 [00:00<00:03, 57.06it/s]Loading weights:  13%|█▎        | 26/199 [00:00<00:03, 51.35it/s]Loading weights:  24%|██▎       | 47/199 [00:00<00:01, 89.24it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 289.78it/s]
+memory (closest attack): AUC 0.885, at 1% false matches the cutoff is 0.86 and it recognises 4.0% of the rewordings
+classifier on embeddings: AUC 0.959, at 1% false alarms it catches 75.3% of the rewordings
+memory with k known rewordings of the same attack (same cutoff as above):
+  k=0:   4.0%   k=1:   4.3%   k=2:   4.7%   k=3:   5.0%   k=4:   5.3%

@@ -180,12 +180,15 @@ def rule_counts(data):
     def fires(rule, prompts):
         return prompts["text"].apply(lambda text: bool(rule.search(text)))
 
+    hackaprompt_attacks = hackaprompt[hackaprompt["label"] == 1]
+    hackaprompt_harmless = hackaprompt[hackaprompt["label"] == 0]
     counts = pd.DataFrame([
         {
             "rule": name,
             "attacks (deepset + jackhhao)": int(fires(rule, combined)[combined["label"] == 1].sum()),
             "harmless (deepset + jackhhao)": int(fires(rule, combined)[combined["label"] == 0].sum()),
-            "HackAPrompt attacks": int(fires(rule, hackaprompt).sum()),
+            "HackAPrompt attacks": int(fires(rule, hackaprompt_attacks).sum()),
+            "HackAPrompt harmless": int(fires(rule, hackaprompt_harmless).sum()),
         }
         for name, rule in COMPILED_RULES.items()
     ])

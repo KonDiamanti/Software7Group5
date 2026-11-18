@@ -7,3 +7,4 @@ pandas
 # attack database experiment (experiments/)
 nltk
 wordllama
+sentence-transformers

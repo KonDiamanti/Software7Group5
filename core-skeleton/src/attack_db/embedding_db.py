@@ -1,111 +1,111 @@
 # embedding_db.py
-# third version of the attack database: an embedding (a list of numbers for the meaning) next to the exact hash.
+# second version of the attack database: finds attacks that are close in meaning,
+# not only exact repeats. it has the same three methods as HashAttackDB
+# (add, lookup, count), so the rest of the project does not change.
 #
-# a small language model turns the cleaned prompt into a vector. prompts with a similar meaning
-# point in a similar direction, so "how close" = cosine similarity (1 = same direction, 0 = unrelated).
+# how it works: every attack is turned into a vector (an embedding). a new prompt is
+# a "known attack" when its closest stored attack is at least `cutoff` similar.
 #
-# good: can catch rewrites that keep the meaning but change the words.
-# weak: bigger rows (hundreds of numbers), needs a model for every lookup, and the vector says a lot
-#       about the original words, so it is weaker as "stored hashed" privacy.
-#
-# model: all-MiniLM-L6-v2 if sentence-transformers is installed, else WordLlama
-# (its weights ship inside the pip package, so it works without Hugging Face access).
+# what our tests showed (see experiments):
+#   - finds small edits of a known attack (other words in a few places, extra text,
+#     typos, leetspeak) that the hash version misses completely
+#   - does NOT find an attack that is reworded completely in other words
+#   - cutoff 0.90 wrongly matched about 0.5% of harmless prompts in our test data
+#     (mostly a harmless question that an attack extends with an injected sentence)
 
-import shutil
+import hashlib
+import re
 import sqlite3
 import time
-from pathlib import Path
 
 import numpy as np
 
-from .simhash_db import exact_hash, normalise
+from ..tier1.cleaning import clean_lower
+
+# curly quotes -> straight quotes
+QUOTES = str.maketrans({"\u201c": '"', "\u201d": '"', "\u2018": "'", "\u2019": "'"})
+# 1gn0r3 -> ignore (only used inside words that also have letters)
+LEET_BACK = str.maketrans({"4": "a", "3": "e", "1": "i", "0": "o", "5": "s", "7": "t", "@": "a", "$": "s"})
 
 
-class _MiniLM:
-    name = "all-MiniLM-L6-v2 (sentence-transformers)"
-
-    def __init__(self):
-        from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
-    def encode(self, texts):
-        return self.model.encode(list(texts), normalize_embeddings=True, convert_to_numpy=True).astype(np.float32)
+def normalise(text):
+    # same cleaning as tier 1, then quotes and leetspeak, so these tricks do not hide an attack
+    text = clean_lower(text).translate(QUOTES)
+    words = [w.translate(LEET_BACK) if re.search(r"[a-z]", w) else w for w in text.split()]
+    return " ".join(words)
 
 
-class _WordLlama:
-    name = "WordLlama l2_supercat 256-d (bundled weights)"
-
-    def __init__(self):
-        import wordllama
-        from wordllama import WordLlama
-        # the package ships its tokenizer but looks for it in the cache folder, so copy it there once
-        pkg = Path(wordllama.__file__).parent / "tokenizers"
-        cache = Path(WordLlama.get_file_path("tokenizer", None))
-        cache.mkdir(parents=True, exist_ok=True)
-        for f in pkg.glob("*.json"):
-            if not (cache / f.name).exists():
-                shutil.copy(f, cache / f.name)
-        self.model = WordLlama.load()
-
-    def encode(self, texts):
-        v = np.asarray(self.model.embed(list(texts)), dtype=np.float32)
-        return v / np.maximum(np.linalg.norm(v, axis=1, keepdims=True), 1e-12)
-
-
-def load_default_model(prefer="minilm"):
-    if prefer == "minilm":
-        try:
-            return _MiniLM()
-        except Exception:
-            pass
-    return _WordLlama()
+def default_embedder():
+    # imported here so the rest of the project works without sentence-transformers installed
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    return lambda texts: model.encode(texts, normalize_embeddings=True)
 
 
 class EmbeddingAttackDB:
-    def __init__(self, path=":memory:", min_similarity=0.9, model=None):
-        self.min_similarity = min_similarity   # cosine similarity from which a prompt counts as a known attack
-        self.model = model or load_default_model()
+    def __init__(self, path=":memory:", cutoff=0.90, embedder=None, model_name="all-MiniLM-L6-v2"):
+        # embedder: function that takes a list of texts and returns one vector per text.
+        # tests pass a small fake one, so they need no download.
+        self.cutoff = cutoff
+        self.embedder = embedder
         self.con = sqlite3.connect(path)
         self.con.execute(
             "CREATE TABLE IF NOT EXISTS attacks ("
-            "hash TEXT PRIMARY KEY, embedding BLOB, source TEXT, added REAL)")
+            "hash TEXT PRIMARY KEY, source TEXT, added REAL, vec BLOB)")
+        self.con.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
         self.con.commit()
-        rows = self.con.execute("SELECT embedding, source FROM attacks").fetchall()
-        dim = len(self.embed("x"))
-        self._vecs = (np.vstack([np.frombuffer(r[0], dtype=np.float32) for r in rows])
-                      if rows else np.zeros((0, dim), dtype=np.float32))
-        self._sources = [r[1] for r in rows]
 
-    def embed(self, text):
-        return self.model.encode([normalise(text)])[0]
+        # vectors from one model mean nothing to another model, so a file remembers its model
+        row = self.con.execute("SELECT value FROM meta WHERE key = 'model'").fetchone()
+        if row is None:
+            self.con.execute("INSERT INTO meta VALUES ('model', ?)", (model_name,))
+            self.con.commit()
+        elif row[0] != model_name:
+            self.con.close()  # otherwise Windows keeps the file locked
+            raise ValueError(f"this database was made with {row[0]}, not {model_name}")
+
+        # load what is already stored
+        self._keys, self._sources, rows = set(), [], []
+        for key, source, blob in self.con.execute("SELECT hash, source, vec FROM attacks ORDER BY rowid"):
+            self._keys.add(key)
+            self._sources.append(source)
+            rows.append(np.frombuffer(blob, dtype=np.float32))
+        self._mat = np.stack(rows) if rows else None
+
+    def _embed(self, text):
+        if self.embedder is None:
+            self.embedder = default_embedder()
+        vec = np.asarray(self.embedder([normalise(text)])[0], dtype=np.float32)
+        return vec / (np.linalg.norm(vec) + 1e-12)
 
     def add(self, text, source=""):
-        v = self.embed(text)
-        cur = self.con.execute(
-            "INSERT OR IGNORE INTO attacks VALUES (?, ?, ?, ?)",
-            (exact_hash(text), v.tobytes(), source, time.time()))
+        # the same prompt twice is fine, the second one is ignored
+        key = hashlib.sha256(normalise(text).encode("utf-8")).hexdigest()
+        if key in self._keys:
+            return
+        vec = self._embed(text)
+        self.con.execute("INSERT INTO attacks VALUES (?, ?, ?, ?)",
+                         (key, source, time.time(), vec.tobytes()))
         self.con.commit()
-        if cur.rowcount:
-            self._vecs = np.vstack([self._vecs, v[None, :]])
-            self._sources.append(source)
+        self._keys.add(key)
+        self._sources.append(source)
+        # simple and fine for thousands of attacks. for millions use an index (for example faiss)
+        self._mat = vec[None, :] if self._mat is None else np.vstack([self._mat, vec])
 
     def nearest(self, text):
-        """(cosine similarity, source) of the closest stored attack, or (None, None) when empty"""
-        if len(self._vecs) == 0:
-            return None, None
-        sims = self._vecs @ self.embed(text)
+        # (similarity, source) of the closest stored attack, or None if the database is empty
+        if self._mat is None:
+            return None
+        sims = self._mat @ self._embed(text)
         i = int(sims.argmax())
         return float(sims[i]), self._sources[i]
 
     def lookup(self, text):
-        row = self.con.execute(
-            "SELECT source FROM attacks WHERE hash = ?", (exact_hash(text),)).fetchone()
-        if row is not None:
-            return row[0] or "known attack"
-        sim, source = self.nearest(text)
-        if sim is not None and sim >= self.min_similarity:
-            return source or "known attack (close meaning)"
-        return None
+        best = self.nearest(text)
+        if best is None or best[0] < self.cutoff:
+            return None
+        similarity, source = best
+        return f"{source or 'known attack'} (similarity {similarity:.2f})"
 
     def count(self):
-        return self.con.execute("SELECT COUNT(*) FROM attacks").fetchone()[0]
+        return len(self._keys)

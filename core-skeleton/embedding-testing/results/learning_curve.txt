@@ -1,0 +1,29 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+attacks 916, harmless 1037, look-alikes 25, rewordings 150
+each app brings 30 confirmed attacks and 30 harmless prompts, 20 random runs
+
+==============================================================================
+MODEL: all-MiniLM-L6-v2
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 1619.14it/s]
+time to embed one prompt on this machine: 21 ms
+
+classifier: at 1% harmless flagged. memory: cutoff 0.9. mean over 20 runs
+apps | CLASSIFIER rewordings | CLASSIFIER held-out | rewording AUC | MEMORY rewordings | MEMORY held-out | MEMORY false matches
+   1 |  33.0% +- 8.8         |  62.2% +- 3.2       |         0.924 |              0.0% |            2.9% |                 0.0%
+   2 |  37.3% +- 8.8         |  64.4% +- 2.4       |         0.934 |              0.0% |            5.2% |                 0.1%
+   5 |  37.0% +- 8.3         |  65.9% +- 3.1       |         0.931 |              0.0% |            9.8% |                 0.1%
+  10 |  34.7% +- 6.6         |  66.7% +- 3.5       |         0.929 |              0.0% |           14.9% |                 0.2%
+  20 |  33.7% +- 4.8         |  67.0% +- 2.7       |         0.932 |              0.0% |           21.1% |                 0.3%
+
+==============================================================================
+MODEL: all-mpnet-base-v2
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights:   7%|▋         | 13/199 [00:00<00:01, 125.33it/s]Loading weights:  15%|█▌        | 30/199 [00:00<00:01, 141.61it/s]Loading weights:  28%|██▊       | 56/199 [00:00<00:00, 192.66it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 512.96it/s]
+time to embed one prompt on this machine: 160 ms
+
+classifier: at 1% harmless flagged. memory: cutoff 0.9. mean over 20 runs
+apps | CLASSIFIER rewordings | CLASSIFIER held-out | rewording AUC | MEMORY rewordings | MEMORY held-out | MEMORY false matches
+   1 |  35.0% +-12.3         |  63.1% +- 3.2       |         0.932 |              0.0% |            2.9% |                 0.0%
+   2 |  36.5% +-11.6         |  64.5% +- 3.0       |         0.939 |              0.0% |            5.2% |                 0.1%
+   5 |  42.3% +-13.9         |  67.4% +- 3.7       |         0.941 |              0.0% |            9.8% |                 0.1%
+  10 |  45.7% +-12.2         |  69.8% +- 3.7       |         0.942 |              0.0% |           15.1% |                 0.1%
+  20 |  56.3% +- 7.6         |  73.3% +- 2.7       |         0.949 |              0.0% |           22.0% |                 0.3%
