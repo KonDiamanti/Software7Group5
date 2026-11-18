@@ -5,6 +5,9 @@ We test how well existing classifiers and our own cheap checks detect jailbreaks
 | File | What it is |
 |---|---|
 | `S7G5_Classifiers.ipynb` | Runs everything and makes the tables. Start here. |
+| `S7G5_Linguistic_Feature.ipynb` | Runs the separate English-only rule-based linguistic-feature experiment. |
+| `Linguistic_feature.py` | Provides the nine rule matches, routing policies and linguistic-feature CSV export. |
+| `LINGUISTIC-FEATURE-PLAN.md` | Defines the scope and interpretation of the linguistic work. |
 | `prompt_data.py` | Loads the test prompts, and the safe-guard training data without near copies of test prompts. |
 | `classifiers.py` | The twelve classifiers. |
 | `benchmark.py` | Runs a classifier on every prompt and makes the result tables. |
@@ -18,9 +21,23 @@ We test how well existing classifiers and our own cheap checks detect jailbreaks
 |---|---|---|---|
 | `deepset/prompt-injections` (test split) | testing: prompt injections, more than a third in German | 60 | 56 |
 | `jackhhao/jailbreak-classification` (test split) | testing: jailbreaks, many of them long role play | 139 | 123 |
-| `hackaprompt/hackaprompt-dataset` (200 random attacks that worked) | testing: prompt injections | 200 | 0 |
+| `hackaprompt/hackaprompt-dataset` (500 random attacks that worked, paired with 500 verified harmless prompts from safe-guard) | testing: prompt injections | 500 | 500 |
 | `our_prompts.csv` | testing: our own prompts, only examples so far | 4 | 4 |
 | `xTRam1/safe-guard-prompt-injection` (train split) | training the learned cheap checks | | |
+
+## English-only linguistic feature
+
+The linguistic feature experiment is limited to English prompts. Open `S7G5_Linguistic_Feature.ipynb` and run it to test:
+
+- the existing nine-rule baseline;
+- the high-specificity rules;
+- a role-play-aware routing policy;
+- one-at-a-time rule ablations.
+
+It reads `results/classifier_predictions.csv`, so it does not need Hugging Face access or the `datasets`/PyArrow packages. It uses the jackhhao, HackAPrompt and `ours` rows from that file. Its results are written to `results/linguistic-features/classifier_predictions.csv` and `results/linguistic-features/classifier_results.csv`.
+
+
+`deepset/prompt-injections` is not included in this experiment because more than a third of its test prompts are in German and the English regex rules cannot validly evaluate German text. This exclusion is a scope limitation, not evidence that the rules perform worse on German attacks. German-specific rules or a language-independent feature would require a separate experiment.
 
 ## Setup
 
@@ -42,11 +59,15 @@ python3 -m venv .venv
 
 `hf auth login` asks for a Hugging Face token (Settings > Access Tokens on huggingface.co, "Read" is enough). Nothing shows while you paste it. Prompt Guard 2, Llama Guard 3 and HackAPrompt also need access: request it on the pages of [Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M) and [Llama Guard 3](https://huggingface.co/meta-llama/Llama-Guard-3-1B), and accept the terms of [HackAPrompt](https://huggingface.co/datasets/hackaprompt/hackaprompt-dataset). Without access these three are skipped.
 
+HackAPrompt contains successful attacks but no verified harmless class. Its 500 harmless evaluation prompts are therefore sampled from the label-0 split of `xTRam1/safe-guard-prompt-injection`, with a fixed seed. The learned checks remove near copies of all test prompts before training.
+
 With an NVIDIA GPU, install the GPU version of torch afterwards (the command for your CUDA version is on [pytorch.org](https://pytorch.org/get-started/locally/)).
 
 ## Running
 
 Open the notebook, click Select Kernel > Python Environments > `.venv`, and click Run All. On a GPU a run takes about 15 to 20 minutes, on a CPU about an hour, mostly for the two guard LLMs.
+
+Transformer timings in the benchmark are intentionally sequential: one prompt is sent through a Hugging Face pipeline at a time to measure per-request latency. Transformers may warn that sequential GPU pipeline calls are inefficient; production deployments can pass a dataset or batches to improve throughput. Batch size and padding affect latency, memory use, and throughput, so batched measurements should be reported separately rather than mixed with the per-request numbers.
 
 The notebook reloads the `.py` files by itself, so after changing one you only have to run the cells again.
 
