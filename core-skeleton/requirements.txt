@@ -3,4 +3,8 @@ joblib
 numpy
 langdetect
 datasets
+pandas
+# attack database experiment (experiments/)
+nltk
+wordllama
 sentence-transformers
