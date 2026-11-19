@@ -36,6 +36,21 @@ The `all` F1 and latency rows combine deepset and jackhhao only. HackAPrompt is 
 
 The training time of TF-IDF (safe-guard) was not measured in this run.
 
+## Cascade prototype
+
+The database-free cascade combines the high-specificity rules with Char TF-IDF + calibrated SVM. It used the same 500/500 HackAPrompt sample and the same near-copy-cleaned safe-guard training data as the classifier run. Prompt Guard 2 was not loaded in this baseline run.
+
+| Dataset | Caught | Missed | False alarms | Detection | False alarm rate | ms |
+|---|---|---|---|---|---|---|
+| deepset | 10/60 | 50 | 0/56 | 16.7% | 0.0% | 3.85 |
+| jackhhao | 132/139 | 7 | 2/123 | 95.0% | 1.6% | 3.56 |
+| HackAPrompt | 120/500 | 380 | 1/500 | 24.0% | 0.2% | 4.06 |
+| Both datasets (`all`) | 142/199 | 57 | 2/179 | 71.4% | 1.1% | 3.65 |
+
+The cascade's deepset and jackhhao F1 is 0.828. This result is a cheap-tier baseline, not yet a full Prompt Guard 2 escalation test.
+
+The shared attack database and confirmed-attack write-back are intentionally left as TODOs in the prototype. Prompt Guard 2 remains active for uncertain prompts; only storing its confirmed attacks will be added later when the team chooses the shared database format and storage policy.
+
 | Classifier | AUC deepset | AUC jackhhao | Det. at 1% FA, jackhhao | Det. at 1% FA, both |
 |---|---|---|---|---|
 | ProtectAI DeBERTa v2 | 0.90 | 0.98* | 69.8* | 54.8* |
@@ -90,6 +105,7 @@ F1 stays the same, so the seed doesn't make the LSTM better or worse. It moves t
 - **29 Oct:** full run of all twelve in Colab after fixing the merged notebook. Same answers as the earlier runs.
 - **5 Nov:** near copies of test prompts removed from the training data. The pretrained classifiers gave the same answers. The LSTM was also run with three seeds.
 - **5 Nov:** the notebook was split into a short notebook and three Python files. On stand-in data it gives exactly the same answers as before.
+- **19 Nov:** added and ran the database-free cascade baseline with 500 HackAPrompt attacks and 500 safe-guard harmless prompts.
 
 ## Limitations
 

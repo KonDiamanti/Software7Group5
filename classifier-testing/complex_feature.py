@@ -64,7 +64,7 @@ def markers(rules=True, text_shape=True):
 def svm():
     """Calibrated like in classifiers.py, so that it gives a score. With the shape features the SVM needs more
     steps to finish learning; without them it finishes early, so the baseline is the same as in classifiers.py."""
-    return CalibratedClassifierCV(LinearSVC(max_iter=10000), cv=5)
+    return CalibratedClassifierCV(LinearSVC(max_iter=100000), cv=5)
 
 
 def marker_models():

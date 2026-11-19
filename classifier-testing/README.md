@@ -5,9 +5,12 @@ We test how well existing classifiers and our own cheap checks detect jailbreaks
 | File | What it is |
 |---|---|
 | `S7G5_Classifiers.ipynb` | Runs everything and makes the tables. Start here. |
+| `S7G5_Cascade.ipynb` | Runs the rules → Char TF-IDF/SVM → optional Prompt Guard 2 cascade prototype. |
+| `cascade.py` | Implements cascade routing and CSV result summaries. |
 | `S7G5_Linguistic_Feature.ipynb` | Runs the separate English-only rule-based linguistic-feature experiment. |
 | `Linguistic_feature.py` | Provides the nine rule matches, routing policies and linguistic-feature CSV export. |
-| `LINGUISTIC-FEATURE-PLAN.md` | Defines the scope and interpretation of the linguistic work. |
+| `S7G5_Complex_Feature.ipynb` | Tests linguistic markers and text-shape features added to Char TF-IDF + SVM. |
+| `complex_feature.py` | Builds marker, text-shape and Char TF-IDF model variants. |
 | `prompt_data.py` | Loads the test prompts, and the safe-guard training data without near copies of test prompts. |
 | `classifiers.py` | The twelve classifiers. |
 | `benchmark.py` | Runs a classifier on every prompt and makes the result tables. |
