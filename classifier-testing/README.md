@@ -5,8 +5,9 @@ We test how well existing classifiers and our own cheap checks detect jailbreaks
 | File | What it is |
 |---|---|
 | `S7G5_Classifiers.ipynb` | Runs everything and makes the tables. Start here. |
-| `S7G5_Cascade.ipynb` | Runs the rules → Char TF-IDF/SVM → optional Prompt Guard 2 cascade prototype. |
-| `cascade.py` | Implements cascade routing and CSV result summaries. |
+| `S7G5_Cascade.ipynb` | Runs the rules → Char TF-IDF/SVM → Prompt Guard 2 cascade prototype and its unsure-band trade-off. |
+| `cascade.py` | Implements cascade routing, cutoff choice, the windowed Prompt Guard 2 check and the result tables. |
+| `test_cascade_unit.py`, `test_cascade_real_guard.py` | Cascade tests: fast stub tests, and tests with the real Prompt Guard 2 (need a Hugging Face login). |
 | `S7G5_Linguistic_Feature.ipynb` | Runs the separate English-only rule-based linguistic-feature experiment. |
 | `Linguistic_feature.py` | Provides the nine rule matches, routing policies and linguistic-feature CSV export. |
 | `S7G5_Complex_Feature.ipynb` | Tests linguistic markers and text-shape features added to Char TF-IDF + SVM. |
@@ -69,6 +70,8 @@ With an NVIDIA GPU, install the GPU version of torch afterwards (the command for
 ## Running
 
 Open the notebook, click Select Kernel > Python Environments > `.venv`, and click Run All. On a GPU a run takes about 15 to 20 minutes, on a CPU about an hour, mostly for the two guard LLMs.
+
+The cascade notebook uses the same setup: it checks the Hugging Face login, selects the available CPU/GPU device, and loads Prompt Guard 2 once at the start. Only prompts the char tier is unsure about are sent to it. The unsure band (`PASS_CUTOFF`, `BLOCK_CUTOFF`) is set at the top of the notebook. Run the cascade tests with `python -m unittest test_cascade_unit test_cascade_real_guard -v`.
 
 Transformer timings in the benchmark are intentionally sequential: one prompt is sent through a Hugging Face pipeline at a time to measure per-request latency. Transformers may warn that sequential GPU pipeline calls are inefficient; production deployments can pass a dataset or batches to improve throughput. Batch size and padding affect latency, memory use, and throughput, so batched measurements should be reported separately rather than mixed with the per-request numbers.
 
