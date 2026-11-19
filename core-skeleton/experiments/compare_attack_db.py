@@ -27,7 +27,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.attack_db.embedding_db import EmbeddingAttackDB, load_default_model
+from src.attack_db.embedding_db_wordllama import EmbeddingAttackDB, load_default_model
 from src.attack_db.hash_db import HashAttackDB
 from src.attack_db.simhash_db import SimHashAttackDB, _hash64, _popcount, exact_hash, normalise
 
