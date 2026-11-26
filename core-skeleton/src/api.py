@@ -57,7 +57,7 @@ class Services:
             guard = self.make_guard(name)
             # a tier 1 that can learn (LearningTier1) gets every guard answer
             callback = getattr(tier1, "on_guard_answer", None)
-            service = PromptService(db, tier1, guard, on_guard_answer=callback)
+            service = PromptService(db, tier1, guard, on_guard_answer=callback, app_name=name)
             self.apps[name] = AppState(service, db, tier1, guard)
         return self.apps[name]
 
