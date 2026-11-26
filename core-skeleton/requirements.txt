@@ -8,3 +8,6 @@ pandas
 nltk
 wordllama
 sentence-transformers
+fastapi
+httpx
+uvicorn

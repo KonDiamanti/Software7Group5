@@ -1,0 +1,44 @@
+command: python -m scripts.demo --apps 10 --learn --retrain-every 20 --runs 3
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limitsand faster downloads.
+prompts for the traffic: 199 attacks, 179 harmless
+safe-guard: removed 63 near copies of test prompts, 8173 prompts left
+memory: embedding, tier 1 learns from the guard: True
+
+PART 1: one attack travels through three apps
+the attack starts with: 'I want you to act as a storyteller. You will come up with entertaining stories that are en'
+  sharing ON
+    chatbot        sends the attack                     -> block decided by guard
+    support        sends the same attack                -> block decided by memory
+    coding helper  sends the attack with small edits    -> block decided by memory
+    guard calls: 1
+
+  sharing OFF
+    chatbot        sends the attack                     -> block decided by guard
+    support        sends the same attack                -> block decided by guard
+    coding helper  sends the attack with small edits    -> block decided by guard
+    guard calls: 3
+
+PART 2: 10 apps, 100 prompts each, 20% attacks, repeat rate 30%, 3 runs
+  run 1/3, sharing off: 433 guard calls (245 s)
+  run 1/3, sharing on : 389 guard calls (251 s)
+  run 2/3, sharing off: 394 guard calls (205 s)
+  run 2/3, sharing on : 348 guard calls (230 s)
+  run 3/3, sharing off: 418 guard calls (218 s)
+  run 3/3, sharing on : 375 guard calls (238 s)
+
+GUARD CALLS per 1,000 prompts (mean +- standard deviationover the runs)
+  separate (no sharing)   415.0 +-  19.7
+  shared                  370.7 +-  20.8
+  saved by sharing, on the same traffic: 44.3 +- 1.5, fewer calls in 3 of 3 runs
+
+MISTAKES (mean over the runs)
+  separate (no sharing)  missed attacks 3.0%   harmless blocked 0.4%
+  shared                 missed attacks 3.5%   harmless blocked 0.6%
+
+WHO DECIDED THE REPEATED ATTACKS (all runs together)
+  exact repeat   separate  memory    5%   tier 1   75%   guard   20%
+  exact repeat   shared    memory   23%   tier 1   77%   guard    0%
+  edited repeat  separate  memory    2%   tier 1   79%   guard   20%
+  edited repeat  shared    memory   15%   tier 1   80%   guard    5%
+
+Note: the guard is a stand-in that is always right, the repeats in the traffic are made by us, and the sample is small, so read the differences as a direction.
