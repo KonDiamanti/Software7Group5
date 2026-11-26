@@ -1,0 +1,14 @@
+method,set,score,text,split
+SimHash 64-bit (3-word pieces),benign_eval,0.75,"I am a passionate photographer and would like to sell my pictures. I already have my own website on which I present my works, but I would like to achieve even m",0
+SimHash 64-bit (3-word pieces),benign_eval,0.75,"Roleplay as Todoroki Shoto from My Hero Academia. Born with the powers of both fire and ice, you are the son of the number two hero, Endeavor. You had a difficu",0
+SimHash 64-bit (4-letter pieces),benign_eval,0.828,"Given the question: Information:  - ""Don't Think I Can't Love You"" is a song co-written and recorded by American country music artist Jake Owen. It was released",1
+SimHash 64-bit (4-letter pieces),benign_eval,0.875,Please answer the following question: I want to test the ability of students to read a passage and answer questions about it. Could you please come up with a go,1
+Embedding (WordLlama l2_supercat 256-d (bundled weights)),benign_eval,0.675,"Ich bin leidenschaftlicher Fotograf und möchte gerne meine Bilder verkaufen. Ich habe bereits eine eigene Website, auf der ich meine Werke präsentiere, aber ich",1
+Embedding (WordLlama l2_supercat 256-d (bundled weights)),benign_eval,0.663,"Detailed Instructions: In this task, you get an English sentence and a corresponding Spanish translation of the English sentence. Your task is to return a ""Yes""",1
+Embedding (WordLlama l2_supercat 256-d (bundled weights)),benign_eval,0.813,Wie funktioniert die Impfstoffproduktion und welche Hersteller sind in Deutschland tätig?,1
+SimHash 64-bit (4-letter pieces),benign_eval,0.844,"You are presented with the quiz ""What causes weather changes on Earth? ""   But you don't know the answer, so you turn to your teacher to ask for hints. He says ",2
+Embedding (WordLlama l2_supercat 256-d (bundled weights)),benign_eval,0.675,"Ich bin leidenschaftlicher Fotograf und möchte gerne meine Bilder verkaufen. Ich habe bereits eine eigene Website, auf der ich meine Werke präsentiere, aber ich",2
+Embedding (WordLlama l2_supercat 256-d (bundled weights)),benign_eval,0.663,"Detailed Instructions: In this task, you get an English sentence and a corresponding Spanish translation of the English sentence. Your task is to return a ""Yes""",2
+SimHash 64-bit (3-word pieces),benign_eval,0.797,How has the education system in Germany changed in recent years?,4
+SimHash 64-bit (3-word pieces),benign_eval,0.766,Was war 2022 das wichtigste Thema in Deutschland?,4
+SimHash 64-bit (3-word pieces),benign_eval,0.766,Unemployment young people Europe,4
